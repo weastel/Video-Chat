@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Video Streaming</title>
+  </head>
+  <body>
+    <video id="local" autoplay ></video>
+    <video id="remote" autoplay ></video>
+    <script>
+
+    const alice = new RTCPeerConnection();
+    const bob = new RTCPeerConnection();
+
+    alice.onicecandidate = e =>{
+      if(e.candidate){
+        bob.addIceCandidate(e.candidate);
+      }
+    }
+    bob.onicecandidate = e =>{
+      if(e.candidate){
+        alice.addIceCandidate(e.candidate);
+      }
+    }
+    navigator.mediaDevices.getUserMedia({
+      video:true
+    })
+    .then(stream =>{
+      document.getElementById('local').srcObject = stream;
+      alice.addStream(stream);
+      return alice.createOffer();
+    })
+    .then(offer => alice.setLocalDescription(new RTCSessionDescription(offer)))
+    .then(()=>bob.setRemoteDescription(alice.localDescription))
+    .then(()=>bob.createAnswer())
+    .then(answer => bob.setLocalDescription(new RTCSessionDescription(answer)))
+    .then(()=>alice.setRemoteDescription(bob.localDescription));
+
+    bob.ontrack = e =>{
+      document.getElementById('remote').srcObject = e.streams[0];
+    }
+
+    </script>
+  </body>
+</html>
